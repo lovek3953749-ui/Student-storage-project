@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KBC Quiz App</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: radial-gradient(circle, #000428, #004e92);
+  color: white;
+  text-align: center;
+}
+
+.container {
+  width: 60%;
+  margin: auto;
+  padding-top: 40px;
+}
+
+h1 {
+  color: gold;
+}
+
+.question-box {
+  background: rgba(0,0,0,0.7);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.options button {
+  width: 45%;
+  margin: 10px;
+  padding: 15px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  background: #1e90ff;
+  color: white;
+  transition: 0.3s;
+}
+
+.options button:hover {
+  background: #00bfff;
+}
+
+/* ✅ New colors */
+.correct {
+  background: green !important;
+}
+
+.wrong {
+  background: red !important;
+}
+
+.timer {
+  font-size: 20px;
+  margin: 10px;
+  color: #ffcc00;
+}
+
+.money {
+  color: lightgreen;
+  font-size: 18px;
+}
+
+.hidden {
+  display: none;
+}
+
+#result {
+  font-size: 22px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>🎮 KBC Quiz Game</h1>
+
+  <div id="quiz-box" class="question-box">
+    <div class="money" id="money"></div>
+    <div class="timer" id="timer">Time: 10</div>
+    <h2 id="question"></h2>
+    <div class="options" id="options"></div>
+  </div>
+
+  <div id="result" class="hidden"></div>
+</div>
+
+<!-- Sounds -->
+<audio id="correctSound" src="correct.mp3"></audio>
+<audio id="wrongSound" src="wrong.mp3"></audio>
+<audio id="tickSound" src="clock-ticking-1.mp3"></audio>
+
+<script>
+const questions = [
+  {q:"Capital of India?", options:["Mumbai","Delhi","Kolkata","Chennai"], answer:1, money:"₹1,000"},
+  {q:"Largest planet?", options:["Earth","Mars","Jupiter","Venus"], answer:2, money:"₹2,000"},
+  {q: "Which is the longest river in the world?",options: ["Amazon", "Nile", "Yangtze", "Mississippi"],answer: 1,money: "₹5,000"},
+  {q:"Who wrote Ramayana?", options:["Valmiki","Tulsidas","Kalidas","Ved Vyasa"], answer:0, money:"₹10,000"},
+  {q:"Fastest animal?", options:["Cheetah","Lion","Tiger","Leopard"], answer:0, money:"₹20,000"},
+  {q:"HTML stands for?", options:["Hyper Trainer","Hyper Text Markup","High Text","None"], answer:1, money:"₹40,000"},
+  {q:"First President of India?", options:["Nehru","Gandhi","Rajendra Prasad","Patel"], answer:2, money:"₹80,000"},
+  {q:"Speed of light?", options:["300 km/s","300000 km/s","150000 km/s","1M km/s"], answer:1, money:"₹1,60,000"},
+  {q:"Founder of Microsoft?", options:["Steve Jobs","Bill Gates","Elon Musk","Mark"], answer:1, money:"₹3,20,000"},
+  {q:"Hardest natural substance?", options:["Gold","Iron","Diamond","Silver"], answer:2, money:"₹7,00,000"}
+];
+
+let current = 0;
+let timer = 10;
+let interval;
+let totalTime = 0;
+
+function loadQuestion() {
+  if (current >= questions.length) {
+    showResult(true);
+    return;
+  }
+
+  const q = questions[current];
+  document.getElementById("question").innerText = (current+1) + ". " + q.q;
+  document.getElementById("money").innerText = "Prize: " + q.money;
+
+  const optionsDiv = document.getElementById("options");
+  optionsDiv.innerHTML = "";
+
+  q.options.forEach((opt, index) => {
+    const btn = document.createElement("button");
+    btn.innerText = opt;
+    btn.dataset.index = index;
+    btn.onclick = () => checkAnswer(btn, index);
+    optionsDiv.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function startTimer() {
+  timer = 10;
+  document.getElementById("timer").innerText = "Time: " + timer;
+
+  const tickSound = document.getElementById("tickSound");
+  tickSound.loop = true;
+  tickSound.play();
+
+  interval = setInterval(() => {
+    timer--;
+    totalTime++;
+
+    document.getElementById("timer").innerText = "Time: " + timer;
+
+    if (timer <= 0) {
+      clearInterval(interval);
+      tickSound.pause();
+      revealAnswer(-1);
+    }
+  }, 1000);
+}
+
+function checkAnswer(button, index) {
+  clearInterval(interval);
+  document.getElementById("tickSound").pause();
+
+  revealAnswer(index);
+}
+
+function revealAnswer(selectedIndex) {
+  const correctIndex = questions[current].answer;
+  const buttons = document.querySelectorAll("#options button");
+
+  buttons.forEach(btn => {
+    const idx = Number(btn.dataset.index);
+
+    if (idx === correctIndex) {
+      btn.classList.add("correct");
+    }
+
+    if (idx === selectedIndex && idx !== correctIndex) {
+      btn.classList.add("wrong");
+    }
+
+    btn.disabled = true;
+  });
+
+  if (selectedIndex === correctIndex) {
+    document.getElementById("correctSound").play();
+    current++;
+    setTimeout(loadQuestion, 1500);
+  } else {
+    document.getElementById("wrongSound").play();
+    setTimeout(() => showResult(false), 1500);
+  }
+}
+
+function showResult(won) {
+  document.getElementById("quiz-box").classList.add("hidden");
+
+  const resultDiv = document.getElementById("result");
+  resultDiv.classList.remove("hidden");
+
+  let prize = current > 0 ? questions[current-1].money : "₹0";
+
+  resultDiv.innerHTML = `
+    <h2>${won ? "🎉 You Won!" : "❌ Game Over"}</h2>
+    <p>Total Time: ${totalTime} seconds</p>
+    <p>Winning Amount: ${prize}</p>
+    <button onclick="location.reload()">Play Again</button>
+  `;
+}
+
+loadQuestion();
+</script>
+
+</body>
+</html>
